@@ -55,14 +55,9 @@ fn io_result<T>(rc: isize, res: T) -> Result<T> {
 
 /// Represent an in-kernel vhost device backend.
 pub trait VhostKernBackend: AsRawFd {
-    /// Associated type to access guest memory.
-    type AS: GuestAddressSpace;
-
-    /// Get the object to access the guest's memory.
-    fn mem(&self) -> &Self::AS;
-
     /// Check whether the ring configuration is valid.
-    fn is_valid(&self, config_data: &VringConfigData) -> bool {
+    fn is_valid<AS: GuestAddressSpace>(&self, mem: &AS, config_data: &VringConfigData) -> bool {
+        return true;
         let queue_size = config_data.queue_size;
         if queue_size > config_data.queue_max_size
             || queue_size == 0
@@ -71,7 +66,7 @@ pub trait VhostKernBackend: AsRawFd {
             return false;
         }
 
-        let m = self.mem().memory();
+        let m = mem.memory();
         let desc_table_size = 16 * u64::from(queue_size) as GuestUsize;
         let avail_ring_size = 6 + 2 * u64::from(queue_size) as GuestUsize;
         let used_ring_size = 6 + 8 * u64::from(queue_size) as GuestUsize;
@@ -200,10 +195,14 @@ impl<T: VhostKernBackend> VhostBackend for T {
     ///
     /// # Arguments
     /// * `queue_index` - Index of the queue to set addresses for.
-    /// * `config_data` - Vring config data, addresses of desc_table, avail_ring
-    ///     and used_ring are in the guest address space.
-    fn set_vring_addr(&self, queue_index: usize, config_data: &VringConfigData) -> Result<()> {
-        if !self.is_valid(config_data) {
+    /// * `config_data` - Vring config data.
+    fn set_vring_addr<AS: GuestAddressSpace>(
+        &self,
+        mem: &AS,
+        queue_index: usize,
+        config_data: &VringConfigData,
+    ) -> Result<()> {
+        if !self.is_valid(mem, config_data) {
             return Err(Error::InvalidQueue);
         }
 

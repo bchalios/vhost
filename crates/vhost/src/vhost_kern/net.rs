@@ -18,14 +18,13 @@ use crate::net::*;
 const VHOST_NET_PATH: &str = "/dev/vhost-net";
 
 /// Handle for running VHOST_NET ioctls
-pub struct Net<AS: GuestAddressSpace> {
+pub struct Net {
     fd: File,
-    mem: AS,
 }
 
-impl<AS: GuestAddressSpace> Net<AS> {
+impl Net {
     /// Open a handle to a new VHOST-NET instance.
-    pub fn new(mem: AS) -> Result<Self> {
+    pub fn new() -> Result<Self> {
         Ok(Net {
             fd: OpenOptions::new()
                 .read(true)
@@ -33,12 +32,13 @@ impl<AS: GuestAddressSpace> Net<AS> {
                 .custom_flags(libc::O_CLOEXEC | libc::O_NONBLOCK)
                 .open(VHOST_NET_PATH)
                 .map_err(Error::VhostOpen)?,
-            mem,
         })
     }
 }
 
-impl<AS: GuestAddressSpace> VhostNet for Net<AS> {
+impl VhostKernBackend for Net {}
+
+impl VhostNet for Net {
     fn set_backend(&self, queue_index: usize, fd: Option<&File>) -> Result<()> {
         let vring_file = vhost_vring_file {
             index: queue_index as u32,
@@ -51,15 +51,7 @@ impl<AS: GuestAddressSpace> VhostNet for Net<AS> {
     }
 }
 
-impl<AS: GuestAddressSpace> VhostKernBackend for Net<AS> {
-    type AS = AS;
-
-    fn mem(&self) -> &Self::AS {
-        &self.mem
-    }
-}
-
-impl<AS: GuestAddressSpace> AsRawFd for Net<AS> {
+impl AsRawFd for Net {
     fn as_raw_fd(&self) -> RawFd {
         self.fd.as_raw_fd()
     }

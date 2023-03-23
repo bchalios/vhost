@@ -14,7 +14,7 @@ use std::os::unix::io::AsRawFd;
 use std::os::unix::io::RawFd;
 use std::sync::RwLock;
 
-use vm_memory::{bitmap::Bitmap, Address, GuestMemoryRegion, GuestRegionMmap};
+use vm_memory::{bitmap::Bitmap, Address, GuestAddressSpace, GuestMemoryRegion, GuestRegionMmap};
 use vmm_sys_util::eventfd::EventFd;
 
 #[cfg(feature = "vhost-user")]
@@ -275,7 +275,12 @@ pub trait VhostBackend: std::marker::Sized {
     /// # Arguments
     /// * `queue_index` - Index of the queue to set addresses for.
     /// * `config_data` - Configuration data for a vring.
-    fn set_vring_addr(&self, queue_index: usize, config_data: &VringConfigData) -> Result<()>;
+    fn set_vring_addr<AS: GuestAddressSpace>(
+        &self,
+        mem: &AS,
+        queue_index: usize,
+        config_data: &VringConfigData,
+    ) -> Result<()>;
 
     /// Set the first index to look for available descriptors.
     ///
@@ -361,7 +366,12 @@ pub trait VhostBackendMut: std::marker::Sized {
     /// # Arguments
     /// * `queue_index` - Index of the queue to set addresses for.
     /// * `config_data` - Configuration data for a vring.
-    fn set_vring_addr(&mut self, queue_index: usize, config_data: &VringConfigData) -> Result<()>;
+    fn set_vring_addr<AS: GuestAddressSpace>(
+        &mut self,
+        mem: &AS,
+        queue_index: usize,
+        config_data: &VringConfigData,
+    ) -> Result<()>;
 
     /// Set the first index to look for available descriptors.
     ///
@@ -429,10 +439,15 @@ impl<T: VhostBackendMut> VhostBackend for RwLock<T> {
         self.write().unwrap().set_vring_num(queue_index, num)
     }
 
-    fn set_vring_addr(&self, queue_index: usize, config_data: &VringConfigData) -> Result<()> {
+    fn set_vring_addr<AS: GuestAddressSpace>(
+        &self,
+        mem: &AS,
+        queue_index: usize,
+        config_data: &VringConfigData,
+    ) -> Result<()> {
         self.write()
             .unwrap()
-            .set_vring_addr(queue_index, config_data)
+            .set_vring_addr(mem, queue_index, config_data)
     }
 
     fn set_vring_base(&self, queue_index: usize, base: u16) -> Result<()> {
@@ -489,8 +504,14 @@ impl<T: VhostBackendMut> VhostBackend for RefCell<T> {
         self.borrow_mut().set_vring_num(queue_index, num)
     }
 
-    fn set_vring_addr(&self, queue_index: usize, config_data: &VringConfigData) -> Result<()> {
-        self.borrow_mut().set_vring_addr(queue_index, config_data)
+    fn set_vring_addr<AS: GuestAddressSpace>(
+        &self,
+        mem: &AS,
+        queue_index: usize,
+        config_data: &VringConfigData,
+    ) -> Result<()> {
+        self.borrow_mut()
+            .set_vring_addr(mem, queue_index, config_data)
     }
 
     fn set_vring_base(&self, queue_index: usize, base: u16) -> Result<()> {

@@ -21,14 +21,13 @@ use crate::vsock::VhostVsock;
 const VHOST_PATH: &str = "/dev/vhost-vsock";
 
 /// Handle for running VHOST_VSOCK ioctls.
-pub struct Vsock<AS: GuestAddressSpace> {
+pub struct Vsock {
     fd: File,
-    mem: AS,
 }
 
-impl<AS: GuestAddressSpace> Vsock<AS> {
+impl Vsock {
     /// Open a handle to a new VHOST-VSOCK instance.
-    pub fn new(mem: AS) -> Result<Self> {
+    pub fn new() -> Result<Self> {
         Ok(Vsock {
             fd: OpenOptions::new()
                 .read(true)
@@ -36,7 +35,6 @@ impl<AS: GuestAddressSpace> Vsock<AS> {
                 .custom_flags(libc::O_CLOEXEC | libc::O_NONBLOCK)
                 .open(VHOST_PATH)
                 .map_err(Error::VhostOpen)?,
-            mem,
         })
     }
 
@@ -50,7 +48,7 @@ impl<AS: GuestAddressSpace> Vsock<AS> {
     }
 }
 
-impl<AS: GuestAddressSpace> VhostVsock for Vsock<AS> {
+impl VhostVsock for Vsock {
     fn set_guest_cid(&self, cid: u64) -> Result<()> {
         // SAFETY: This ioctl is called on a valid vhost-vsock fd and has its
         // return value checked.
@@ -67,15 +65,7 @@ impl<AS: GuestAddressSpace> VhostVsock for Vsock<AS> {
     }
 }
 
-impl<AS: GuestAddressSpace> VhostKernBackend for Vsock<AS> {
-    type AS = AS;
-
-    fn mem(&self) -> &Self::AS {
-        &self.mem
-    }
-}
-
-impl<AS: GuestAddressSpace> AsRawFd for Vsock<AS> {
+impl AsRawFd for Vsock {
     fn as_raw_fd(&self) -> RawFd {
         self.fd.as_raw_fd()
     }
