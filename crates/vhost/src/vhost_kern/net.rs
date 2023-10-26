@@ -18,6 +18,7 @@ use crate::net::*;
 const VHOST_NET_PATH: &str = "/dev/vhost-net";
 
 /// Handle for running VHOST_NET ioctls
+#[derive(Debug)]
 pub struct Net {
     fd: File,
 }
