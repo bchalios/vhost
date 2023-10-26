@@ -7,7 +7,6 @@ use std::fs::{File, OpenOptions};
 use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::io::{AsRawFd, RawFd};
 
-use vm_memory::GuestAddressSpace;
 use vmm_sys_util::ioctl::ioctl_with_ref;
 
 use super::vhost_binding::*;

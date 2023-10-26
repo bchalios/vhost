@@ -207,7 +207,7 @@ impl<T: VhostKernBackend> VhostBackend for T {
         }
 
         // The addresses are converted into the host address space.
-        let vring_addr = config_data.to_vhost_vring_addr(queue_index, self.mem())?;
+        let vring_addr = config_data.to_vhost_vring_addr(queue_index, mem)?;
 
         // SAFETY: This ioctl is called on a valid vhost fd and has its
         // return value checked.
