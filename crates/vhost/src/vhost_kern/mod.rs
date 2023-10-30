@@ -57,7 +57,6 @@ fn io_result<T>(rc: isize, res: T) -> Result<T> {
 pub trait VhostKernBackend: AsRawFd {
     /// Check whether the ring configuration is valid.
     fn is_valid<AS: GuestAddressSpace>(&self, mem: &AS, config_data: &VringConfigData) -> bool {
-        return true;
         let queue_size = config_data.queue_size;
         if queue_size > config_data.queue_max_size
             || queue_size == 0
